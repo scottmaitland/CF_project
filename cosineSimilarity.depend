@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1443585396 source:c:\users\scott\desktop\cosinesimilarity\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<vector>
+	<stdlib.h>
+	<sstream>
+	<cstdio>
+	<ctime>
+

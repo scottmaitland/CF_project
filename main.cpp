@@ -23,13 +23,16 @@ struct matrix_data_type
 
 };
 
+
+
+
 matrix_data_type readFile(matrix_data_type mdt)
 {
 
     cout << "Please input the path to your file." << endl;
     string path;
     //cin >> path;
-    path = "C:\\Users\\Scott\\Desktop\\pa1_data2\\train1.txt";
+    path = "C:\\Users\\Scott\\Desktop\\pa1_data2\\test1.txt";
     string line;
     ifstream myfile(path.c_str());
     int line_count = 0;
@@ -54,8 +57,8 @@ matrix_data_type readFile(matrix_data_type mdt)
                 //for (int i = 0; i < tokens.size(); ++i)
                 //    cout << tokens[i] << endl;
 
-                string columns_str = tokens[0];
-                string rows_str = tokens[1];
+                string columns_str = tokens[1];
+                string rows_str = tokens[0];
                 string nnz_str = tokens[2];
                 mdt.columns = atoi(columns_str.c_str());
                 mdt.rows =  atoi(rows_str.c_str());
@@ -88,7 +91,7 @@ matrix_data_type readFile(matrix_data_type mdt)
                     //cout << "Row: " << line_count << "-- Value: " << tokens[i + 1] << "-- Column index: " << tokens[i] << endl;
                     //cout << atoi(tokens[i+1].c_str())<<endl;
                     mdt.col_ind.push_back(atoi(tokens[i].c_str()));
-                    mdt.val.push_back(atoi(tokens[i+1].c_str()));
+                    mdt.val.push_back(1);
                     mdt.row_ptr[line_count]++;
                     i++;
                 }
@@ -118,10 +121,10 @@ matrix_data_type readFile(matrix_data_type mdt)
     return mdt;
 }
 
-int print_mdt(matrix_data_type mdt)
+int print_mdt(matrix_data_type mdt, string path)
 {
     ofstream myfile;
-    myfile.open ("C:\\Users\\Scott\\Desktop\\pa1_data2\\output1.txt");
+    myfile.open (path.c_str());
     //myfile << "Writing this to a file.\n";
     if(myfile.is_open())
     {
@@ -157,38 +160,90 @@ int print_mdt(matrix_data_type mdt)
     return 0;
 }
 
-
-string run_menu()
+string run_menu(matrix_data_type mdt)
 {
-
-    cout << "Select the number of the procedure you would like to execute." << endl;
-    cout << "1) User-User Similarity" << endl;
-    cout << "2) Item-Item Similarity" << endl;
+    cout << "Please enter the index for the item you wish to get similarities for:" << endl;
     string menu_choice;
     cin >> menu_choice;
 
-    cout << "You chose " << menu_choice << "." << endl;
-
     int menu_choice_int = atoi(menu_choice.c_str());
 
-    if(menu_choice_int == 1)
+    if( menu_choice_int > mdt.rows)
     {
-        cout << "You chose to compute a user-user similarity." << endl;
-        //run_menu();
-    }
-    else if(menu_choice_int == 2)
-    {
-        cout << "You chose to computer a item-item similarity." << endl;
-        //run_menu();
+        menu_choice = "0";
+        menu_choice_int = 0;
+        cout << "The number you chose is not an item index. Please select a number between 0 and " << mdt.rows << "." << endl;
     }
     else
     {
-        cout << "Error: unknown menu item selected." << endl;
-        //run_menu();
+        cout << "You chose " << menu_choice << "." << endl;
     }
+
+
+
+
 
     return menu_choice;
 }
+
+matrix_data_type transpose_matrix(matrix_data_type mdt, matrix_data_type t_mdt)
+{
+    t_mdt.rows = mdt.columns;
+    t_mdt.columns = mdt.rows;
+    t_mdt.nnz = mdt.nnz;
+
+    vector<int> row_counts;
+
+    for(int i = 0; i < (t_mdt.rows + 1); i++ )
+    {
+        t_mdt.row_ptr.push_back(0);
+    }
+
+    for(int i = 0; i < (t_mdt.rows + 1); i++)
+    {
+            row_counts.push_back(0);
+    }
+
+    for(int i = 0; i < t_mdt.nnz; i++)
+    {
+        t_mdt.col_ind.push_back(0);
+        t_mdt.val.push_back(0);
+    }
+
+    for(int i = 0; i < mdt.rows; i++)
+    {
+        for(int j = mdt.row_ptr[i]; j < mdt.row_ptr[i+1]; j++)
+        {
+            int i2 = mdt.col_ind[j];
+            t_mdt.row_ptr[i2+1] ++;
+        }
+    }
+
+    //Construct the final row_ptr2 here
+    for(int i=1; i <= t_mdt.row_ptr.size(); i++)
+    {
+        t_mdt.row_ptr[i] = t_mdt.row_ptr[i] + t_mdt.row_ptr[i-1];
+    }
+
+
+    //second run: fill out the new matrix
+    for(int i = 0; i < mdt.rows; i++)
+    {
+        for(int j = mdt.row_ptr[i]; j < mdt.row_ptr[i+1]; j++)
+        {
+            int i2 = mdt.col_ind[j];
+            t_mdt.col_ind[t_mdt.row_ptr[i2] + row_counts[i2]] = i;
+            t_mdt.val[t_mdt.row_ptr[i2] + row_counts[i2]] = mdt.val[j];
+            row_counts[i2]++;
+        }
+    }
+
+    cout << "A transpose of the matrix has been saved in memory." << endl;
+
+    return t_mdt;
+}
+
+
 
 
 int main()
@@ -202,9 +257,20 @@ int main()
 
     mdt = readFile(mdt);
     cout << "Your file has been read and the matrix is now in memory." << endl;
-    print_mdt(mdt);
-    //string menu_selection;
-    //menu_selection = run_menu();
+    string path = "C:\\Users\\Scott\\Desktop\\pa1_data2\\output1.txt";
+    print_mdt(mdt, path);
+
+
+    //create the transposed matrix data type
+    matrix_data_type t_mdt;
+    t_mdt = transpose_matrix(mdt, t_mdt);
+    string transpose_path = "C:\\Users\\Scott\\Desktop\\pa1_data2\\output2.txt";
+    print_mdt(t_mdt, transpose_path);
+
+    cout << "**************************************************************************************" << endl;
+
+    string menu_selection;
+    menu_selection = run_menu(t_mdt);
 
 
     string exit;
